@@ -1,0 +1,19 @@
+{
+  "name": "nge-cookie",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/nge-cookie/src",
+  "prefix": "nge",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": [
+        "{workspaceRoot}/dist/libs/nge-cookie"
+      ],
+      "options": {
+        "project": "nge-cookie"
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/backend/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "webpack-cli build",
+        "args": ["node-env=production"]
+      },
+      "configurations": {
+        "development": {
+          "args": ["node-env=development"]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "dependsOn": ["build"],
+      "options": {
+        "inspect": false,
+        "buildTarget": "backend:build:development",
+        "runBuildTargetDependencies": false
+      }
+    },
+    "containerize": {
+      "dependsOn": ["build"],
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "load": true,
+        "quiet": true,
+        "target": "debug",
+        "tags": ["internal-backend:latest"]
+      }
+    },
+    "publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "INPUT_TARGET=distroless INPUT_TAGS=$REGISTRY/$REGISTRY_USERNAME/internal-backend:$VERSION npx nx containerize backend --push"
+      }
+    }
+  }
+}

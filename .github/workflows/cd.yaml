@@ -1,0 +1,385 @@
+name: CI/CD
+on:
+  push:
+    branches:
+      - main
+      - dev # Kích hoạt push cho cả main và dev
+  pull_request: # Trigger cho Pull Request thông thường (chạy với quyền của PR)
+    branches:
+      - main
+      - dev
+  pull_request_target: # Trigger cho Pull Request (chạy với quyền của nhánh đích, cần cẩn trọng bảo mật)
+    branches:
+      - main
+      - dev
+  merge_group: # Trigger cho GitHub Merge Queue (nếu bạn sử dụng)
+    branches:
+      - main
+      - dev
+  workflow_dispatch: # Cho phép kích hoạt workflow thủ công từ GitHub UI
+
+permissions:
+  contents: write # Cần quyền này để workflow có thể commit và push thay đổi vào repo
+
+env:
+  # Biến môi trường toàn cục cho tất cả các jobs
+  DOCKER_REGISTRY: ghcr.io
+  GHCR_USERNAME: ${{ github.actor }}
+  NODE_ENV: production # Đặt NODE_ENV mặc định là production
+
+jobs:
+  # Job này sẽ lấy version từ package.json gốc và kiểm tra xem có bất kỳ thay đổi nào
+  # ảnh hưởng đến backend HOẶC frontend.
+  # Job này chỉ chạy trên sự kiện push, vì các output của nó chỉ dùng cho các job publish/deploy.
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      APP_VERSION: ${{ steps.get_version.outputs.APP_VERSION }}
+      HAS_APP_CHANGES: ${{ steps.check_affected.outputs.has_any_changes }}
+    # Chỉ chạy job này khi có push
+    if: github.event_name == 'push'
+    steps:
+      - name: Setup CI Environment Variable
+        run: export CI=true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Sử dụng Node.js version 20 như bạn đã cấu hình
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        shell: bash
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Get yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Get root package.json version
+        id: get_version
+        run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Check for any affected applications (backend or frontend)
+        id: check_affected
+        run: |
+          # Sử dụng đường dẫn đầy đủ đến binary của Nx để đảm bảo tìm thấy lệnh
+          # --base=origin/main là tốt để so sánh với nhánh chính
+          AFFECTED_PROJECTS=$(./node_modules/.bin/nx show projects --affected --base=origin/main --head=HEAD --type=app | grep -E '^(backend|frontend)$' || true)
+          if [ -n "$AFFECTED_PROJECTS" ]; then
+            echo "has_any_changes=true" >> $GITHUB_OUTPUT
+            echo "Affected applications: $AFFECTED_PROJECTS"
+          else
+            echo "has_any_changes=false" >> $GITHUB_OUTPUT
+            echo "No applications (backend or frontend) were affected by changes."
+          fi
+
+  # ---
+  # Job kiểm tra chất lượng code cho Pull Request và Merge Group (Affected projects only)
+  # ---
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    # Chạy job này khi có Pull Request hoặc Merge Group
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target' || github.event_name == 'merge_group'
+    steps:
+      - name: Setup CI Environment Variable
+        run: export CI=true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 cần thiết cho Nx affected commands
+          # Đối với pull_request_target, cần cẩn trọng nếu PR đến từ fork
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        shell: bash
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Get yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Nx Lint for affected projects
+        # Chạy lint chỉ cho các dự án bị ảnh hưởng bởi PR/Merge Group
+        run: ./node_modules/.bin/nx affected --target=lint --base=${{ github.base_ref }} --head=${{ github.head_ref }}
+
+      - name: Run Nx Tests for affected projects
+        # Chạy test chỉ cho các dự án bị ảnh hưởng bởi PR/Merge Group
+        run: ./node_modules/.bin/nx affected --target=test --base=${{ github.base_ref }} --head=${{ github.head_ref }}
+
+      - name: Run Nx Build for affected projects (Dry Run)
+        # Chạy build dry run để kiểm tra xem code có biên dịch được không mà không tạo artifacts
+        run: ./node_modules/.bin/nx affected --target=build --base=${{ github.base_ref }} --head=${{ github.head_ref }} --dry-run
+
+  # ---
+  # Job chạy các kiểm tra tích hợp và E2E
+  # ---
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    # Phụ thuộc vào job `prepare` (cho push) hoặc `pr-validation` (cho PR/merge_group)
+    needs: [prepare, pr-validation]
+    if: |
+      (github.event_name == 'push' && needs.prepare.outputs.HAS_APP_CHANGES == 'true') ||
+      (github.event_name == 'pull_request' && success()) ||
+      (github.event_name == 'pull_request_target' && success()) ||
+      (github.event_name == 'merge_group' && success())
+    steps:
+      - name: Setup CI Environment Variable
+        run: export CI=true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Cần thiết cho Nx affected commands
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        shell: bash
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Get yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Nx Lint (All projects)
+        # Chạy lint cho tất cả các dự án (hoặc có thể dùng affected nếu muốn nhanh hơn)
+        run: ./node_modules/.bin/nx run-many -t lint --all
+
+      - name: Run Nx Unit Tests (All projects)
+        # Chạy unit tests cho tất cả các dự án
+        run: ./node_modules/.bin/nx run-many -t test --all
+
+      - name: Run Nx Build (All projects)
+        # Chạy build cho tất cả các dự án
+        run: ./node_modules/.bin/nx run-many -t build --all
+
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/yarn.lock') }} # Sử dụng yarn.lock
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install playwright deps
+        run: ./node_modules/.bin/playwright install --with-deps
+
+      - name: Deploy local environment
+        # Đảm bảo Docker Compose file của bạn có sẵn trong repo
+        # Nếu có lỗi, workflow sẽ dừng lại ở đây
+        run: docker compose up -d --wait
+
+      - name: E2E test
+        run: ./node_modules/.bin/nx automate-test e2e # Sử dụng target automate-test e2e của bạn
+
+
+
+  # ---
+  # Job publish Backend container image
+  # ---
+  publish-backend:
+    name: Publish Backend
+    runs-on: ubuntu-latest
+    needs: [prepare, integration-tests] # Phụ thuộc vào prepare và integration-tests
+    # CHỈ CHẠY KHI LÀ PUSH LÊN NHÁNH MAIN VÀ CÓ THAY ĐỔI ẢNH HƯỞNG
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.prepare.outputs.HAS_APP_CHANGES == 'true'
+    steps:
+      - name: Setup CI Environment Variable
+        run: export CI=true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Cần thiết cho các lệnh Nx affected
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Sử dụng Node.js version 20
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        shell: bash
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Get yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GH_BOT_TOKEN }} # Sử dụng GH_BOT_TOKEN để đăng nhập
+
+      - name: Build backend application
+        run: ./node_modules/.bin/nx build backend --prod
+        env:
+          APP_VERSION: ${{ needs.prepare.outputs.APP_VERSION }}
+
+      - name: Build and Push backend Docker image
+        run: ./node_modules/.bin/nx publish backend
+        env:
+          VERSION: ${{ needs.prepare.outputs.APP_VERSION }} # Gán APP_VERSION làm Docker image tag
+          GITHUB_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+          INPUT_GITHUB_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+
+  # ---
+  # Job publish Frontend container image
+  # ---
+  publish-frontend:
+    name: Publish Frontend
+    runs-on: ubuntu-latest
+    needs: [prepare, integration-tests] # Phụ thuộc vào prepare và integration-tests
+    # CHỈ CHẠY KHI LÀ PUSH LÊN NHÁNH MAIN VÀ CÓ THAY ĐỔI ẢNH HƯỞNG
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.prepare.outputs.HAS_APP_CHANGES == 'true'
+    steps:
+      - name: Setup CI Environment Variable
+        run: export CI=true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Sử dụng Node.js version 20
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        shell: bash
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Get yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GH_BOT_TOKEN }}
+
+      - name: Set APP_VERSION for frontend build
+        run: echo "APP_VERSION=${{ needs.prepare.outputs.APP_VERSION }}" >> $GITHUB_ENV
+
+      - name: Inject version into Angular environment file
+        run: |
+          echo "export const appVersion = '${{ env.APP_VERSION }}';" > apps/frontend/src/environments/version.ts
+          echo "Successfully updated apps/frontend/src/environments/version.ts"
+
+      - name: Build frontend application (client and server for SSR)
+        run: |
+          ./node_modules/.bin/nx build frontend --prod # Build client (browser)
+          ./node_modules/.bin/nx run frontend:server:production # Build server (SSR)
+
+      - name: Copy and update package.json for frontend server
+        run: |
+          mkdir -p dist/apps/frontend/server/
+          cp apps/frontend/src/server-package.json dist/apps/frontend/server/package.json
+          jq ".version = \"${APP_VERSION}\"" dist/apps/frontend/server/package.json > dist/apps/frontend/server/package.json.tmp && mv dist/apps/frontend/server/package.json.tmp dist/apps/frontend/server/package.json
+          echo "Updated dist/apps/frontend/server/package.json with version ${APP_VERSION}"
+
+      - name: Build and Push frontend Docker image
+        run: ./node_modules/.bin/nx publish frontend
+        env:
+          VERSION: ${{ needs.prepare.outputs.APP_VERSION }} # Gán APP_VERSION làm Docker image tag
+          GITHUB_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+          INPUT_GITHUB_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+
+  # ---
+  # Job Deploy lên K8s thông qua Argo CD
+  # ---
+  deploy-to-k8s:
+    runs-on: ubuntu-latest
+    # Phụ thuộc vào các job publish và job prepare.
+    # Chỉ chạy nếu các job publish thành công và là sự kiện push.
+    needs: [prepare, publish-backend, publish-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success() && needs.prepare.outputs.HAS_APP_CHANGES == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_BOT_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "EcomaIO (Bot)"
+          git config user.email "adm.ecoma@gmail.com"
+          /usr/bin/git config --global --add url."https://${{ secrets.GH_BOT_TOKEN }}:x-oauth-basic@github".insteadOf ssh://git@github
+          /usr/bin/git config --global --add url."https://${{ secrets.GH_BOT_TOKEN }}:x-oauth-basic@github".insteadOf https://github
+          /usr/bin/git config --global --add url."https://${{ secrets.GH_BOT_TOKEN }}:x-oauth-basic@github".insteadOf git@github
+
+      - name: Update Helm values with new image tags
+        run: |
+          HELM_IMAGE_TAG=${{ needs.prepare.outputs.APP_VERSION }}
+          yq e ".version=\"$HELM_IMAGE_TAG\"" -i chart/Chart.yaml
+          echo "Updated version in chart/Chart.yaml"
+
+      - name: Commit and push changes to values.yaml
+        run: |
+          git add chart/Chart.yaml
+          git commit -m "chore(ci): Update version for ${{ needs.prepare.outputs.APP_VERSION }}" || echo "No changes to commit"
+          git push origin ${{ github.ref_name }}

@@ -1,0 +1,19 @@
+{
+  "name": "chart",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "chart",
+  "projectType": "library",
+  "implicitDependencies": [
+    "backend",
+    "frontend"
+  ],
+  "tags": [],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "helm lint {projectRoot}"
+      }
+    }
+  }
+}

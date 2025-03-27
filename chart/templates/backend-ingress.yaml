@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: ecoma
+    app.kubernetes.io/component: backend
+spec:
+  rules:
+    - host: {{ .Values.backend.ingress.host | default "" }}
+      http:
+        paths:
+          - path: {{ .Values.backend.ingress.path | default "/" }}
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - {{ .Values.backend.ingress.host | default "" }}
+      secretName: ecoma-backend-tls

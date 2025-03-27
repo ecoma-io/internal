@@ -1,0 +1,37 @@
+{
+  "$schema": "https://unpkg.com/release-it@19/schema/release-it.json",
+  "git": {
+    "tagName": "v${version}",
+    "commit": true,
+    "commitMessage": "release: v${version}",
+    "requireCommits": true,
+    "requireBranch": "main",
+    "addUntrackedFiles": true
+  },
+  "github": {
+    "release": true,
+    "autoGenerate": true
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "angular",
+      "infile": "CHANGELOG.md"
+    }
+  },
+  "hooks": {
+    "before:init": [
+      "echo \"Starting release...\""
+    ],
+    "after:bump": [
+      "echo \"Build and publish backend image\"",
+      "INPUT_GITHUB_TOKEN=$(echo $GITHUB_TOKEN) INPUT_TAGS=ghcr.io/ecoma-io/internal-backend:${version} ./node_modules/.bin/nx containerize backend --push",
+      "echo \"Build and publish frontend image\"",
+      "INPUT_GITHUB_TOKEN=$(echo $GITHUB_TOKEN) INPUT_TAGS=ghcr.io/ecoma-io/internal-frontend:${version} ./node_modules/.bin/nx containerize frontend --push",
+      "echo \"Updating Chart.yaml...\"",
+      "sed -i \"s/^version: .*/version: ${version}/\" \"./chart/Chart.yaml\""
+    ],
+    "after:release": [
+      "echo \"Release done!\""
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: Ecoma Internal
+description: A Helm chart for the Ecoma Internal Application
+icon: https://github.com/ecoma-io/internal/raw/refs/heads/main/chart/icon.png
+version: 0.0.0
+
+# dependencies:
+#   - name: mongodb
+#     version: 16.5.11
+#     repository: "https://charts.bitnami.com/bitnami"
+#   - name: redis
+#     version: 8.0.1
+#     repository: "https://charts.bitnami.com/bitnami"
+#   - name: rabbitmq
+#     version: 16.0.3
+#     repository: "https://charts.bitnami.com/bitnami"
+#   - name: minio
+#     version: 16.0.10
+#     repository: "https://charts.bitnami.com/bitnami"

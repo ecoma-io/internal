@@ -17,6 +17,7 @@ echo ""
 
 echo "Running lint targets with affected projects..."
 npx nx affected --base=origin/main -t lint --fix --output-style static
+npx nx affected --base=origin/main -t chart-lint --output-style static
 echo ""
 
 echo "Formating all change files...\n"

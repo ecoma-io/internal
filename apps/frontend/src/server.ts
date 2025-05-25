@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import bootstrap from "./main.server";
 import { APP_VERSION, REQUEST, RESPONSE } from "./tokens";
+import {provideLocation, provideUserAgent} from '@ng-web-apis/universal';
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
@@ -48,6 +49,8 @@ export function app(): express.Express {
           { provide: APP_VERSION, useValue: version },
           { provide: REQUEST, useValue: req },
           { provide: RESPONSE, useValue: res },
+          provideLocation(req),
+          provideUserAgent(req)
         ],
       })
       .then((html) => res.send(html))

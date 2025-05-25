@@ -34,6 +34,7 @@
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
     "@ng-web-apis/common": "^4.11.1",
+    "@ng-web-apis/universal": "^4.12.0",
     "@sapphire/snowflake": "^3.5.5",
     "amqp-connection-manager": "^4.1.14",
     "amqplib": "^0.10.7",
@@ -55,7 +56,8 @@
     "typeorm": "^0.3.23",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
     "@action-validator/cli": "^0.6.0",
@@ -105,6 +107,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/supertest": "^6.0.3",
     "@types/winston": "^2.4.4",
+    "@types/zxcvbn": "^4.4.5",
     "@typescript-eslint/utils": "^8.19.0",
     "angular-eslint": "^19.2.0",
     "autoprefixer": "^10.4.0",

@@ -20,10 +20,7 @@ on:
 permissions:
   contents: write # Cần quyền này để workflow có thể commit và push thay đổi vào repo
 
-
 jobs:
-
-
   # ---
   # Job kiểm tra chất lượng code cho Pull Request và Merge Group
   # ---
@@ -67,6 +64,9 @@ jobs:
       - name: Run nx lint for all projects
         run: ./node_modules/.bin/nx run-many --target=lint
 
+      - name: Run nx lint for all projects
+        run: ./node_modules/.bin/nx run-many --target=chart-lint
+
       - name: Run nx test for all projects
         run: ./node_modules/.bin/nx run-many --target=test
 
@@ -100,7 +100,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-
       - name: Setup CI Environment Variable
         run: export CI=true
 
@@ -154,8 +153,3 @@ jobs:
           /usr/bin/git config --global --add url."https://${{ secrets.GH_BOT_TOKEN }}:x-oauth-basic@github".insteadOf https://github
           /usr/bin/git config --global --add url."https://${{ secrets.GH_BOT_TOKEN }}:x-oauth-basic@github".insteadOf git@github
           ./node_modules/.bin/release-it -c .github/release-it.json --ci
-
-
-
-
-

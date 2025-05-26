@@ -49,9 +49,8 @@
       "cache": true,
       "dependsOn": ["^build"]
     },
-    "e2e-test": {
-      "cache": true,
-      "dependsOn": ["^build"]
+    "automate-test": {
+      "cache": false
     },
     "@nx/js:tsc": {
       "cache": true,

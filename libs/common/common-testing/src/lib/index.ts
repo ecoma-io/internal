@@ -3,6 +3,5 @@
  * Bao gồm các test container, mock client, test helper, assertion helper.
  * @since 1.0.0
  */
-export * from "./test-helpers";
 export * from "./testing-containers";
 export * from "./utils";

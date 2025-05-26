@@ -1,10 +1,11 @@
-import { workspaceRoot } from "@nx/devkit";
 import { nxE2EPreset } from "@nx/playwright/preset";
 import { defineConfig, devices } from "@playwright/test";
 
 // For CI, you may want to set BASE_URL to the deployed application.
 
-const BASE_URL = "http://localhost:4200";
+// Use the base URL set in global.setup.ts
+const BASE_URL =
+  process.env["PLAYWRIGHT_TEST_BASE_URL"] || "http://localhost:4200";
 
 /**
  * Read environment variables from file.
@@ -16,6 +17,9 @@ const BASE_URL = "http://localhost:4200";
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+  // Reference the global setup file
+  globalSetup: require.resolve("./global.setup"),
+
   ...nxE2EPreset(__filename, { testDir: "./src" }),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -24,23 +28,6 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   /* Run your local dev server before starting the tests */
-  webServer:
-    BASE_URL !== BASE_URL
-      ? undefined
-      : [
-          {
-            command: "yarn nx run frontend:serve",
-            url: "http://localhost:4200",
-            cwd: workspaceRoot,
-            timeout: 300000,
-          },
-          {
-            command: "yarn nx run backend:serve",
-            url: "http://localhost:3000/health",
-            cwd: workspaceRoot,
-            timeout: 300000,
-          },
-        ],
   projects: [
     {
       name: "chromium",

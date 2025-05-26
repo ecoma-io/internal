@@ -74,8 +74,45 @@ jobs:
       - name: Run nx build for all projects
         run: ./node_modules/.bin/nx run-many --target=build
 
-      - name: Run nx containerize for all projects (dry run build container image)
-        run: ./node_modules/.bin/nx run-many --target=containerize
+
+
+  e2e_check:
+    name: Intergration Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup CI Environment Variable
+        run: export CI=true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        shell: bash
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Get yarn cache
+        uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install helm
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
 
       - uses: actions/cache@v4
         id: playwright-cache
@@ -95,9 +132,10 @@ jobs:
       - name: E2E test
         run: ./node_modules/.bin/nx run-many --target=automate-test
 
+
   release:
     name: Release
-    needs: [intergration_check]
+    needs: [intergration_check, e2e_check]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:

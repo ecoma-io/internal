@@ -110,9 +110,6 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Install helm
-        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
 
       - uses: actions/cache@v4
         id: playwright-cache
@@ -125,9 +122,6 @@ jobs:
 
       - name: Install playwright deps
         run: ./node_modules/.bin/playwright install --with-deps
-
-      - name: Deploy local environment
-        run: docker compose up -d --wait
 
       - name: E2E test
         run: ./node_modules/.bin/nx run-many --target=automate-test

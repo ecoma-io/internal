@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request: # Trigger cho Pull Request thông thường (chạy với quyền của PR)
     branches:
       - main

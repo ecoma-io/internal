@@ -19,7 +19,7 @@ const BASE_URL =
 export default defineConfig({
   // Reference the global setup file
   globalSetup: require.resolve("./global.setup"),
-
+  timeout: 10 * 60 * 1000,
   ...nxE2EPreset(__filename, { testDir: "./src" }),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {

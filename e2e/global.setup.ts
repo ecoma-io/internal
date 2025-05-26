@@ -2,21 +2,29 @@ import { workspaceRoot } from "@nx/devkit";
 /* eslint-disable no-console */
 import { MongoDBContainer, RabbitMQContainer } from "@ecoma/common-testing";
 import { execSync } from "child_process";
-import { GenericContainer, Wait } from "testcontainers";
+import { GenericContainer, Wait, Network } from "testcontainers";
 
 async function deployLocalTestingEnviroment() {
   console.log("Deploying local testing environment containers...");
 
+  // Create a network for all containers
+  const network = await new Network().start();
+  console.log(`Created network: ${network.getName()}`);
+
   // start mongodb
   console.log("Starting MongoDB container...");
-  const mongodbContainer = await new MongoDBContainer().start();
+  const mongodbContainer = await new MongoDBContainer()
+    .withNetwork(network)
+    .start();
   console.log(
     `MongoDB container started at ${mongodbContainer.getConnectionString()}`
   );
 
   // start rabbitmq
   console.log("Starting RabbitMQ container...");
-  const rabbitMQcontainer = await new RabbitMQContainer().start();
+  const rabbitMQcontainer = await new RabbitMQContainer()
+    .withNetwork(network)
+    .start();
   console.log(
     `RabbitMQ container started at ${rabbitMQcontainer.getAmqpUrl()}`
   );
@@ -24,6 +32,7 @@ async function deployLocalTestingEnviroment() {
   // start backend
   console.log("Starting Backend container...");
   const backendContainer = await new GenericContainer("internal-backend:latest")
+    .withNetwork(network)
     .withEnvironment({
       PORT: "3000",
       MONGODB_URI: mongodbContainer.getConnectionString(),
@@ -51,6 +60,7 @@ async function deployLocalTestingEnviroment() {
   const fontendContainer = await new GenericContainer(
     "internal-frontend:latest"
   )
+    .withNetwork(network)
     .withEnvironment({
       PORT: "4200",
       API_BASE_URL: `http://${backendContainer.getHost()}:${backendContainer.getMappedPort(

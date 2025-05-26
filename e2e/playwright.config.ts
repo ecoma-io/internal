@@ -32,13 +32,13 @@ export default defineConfig({
             command: "yarn nx run frontend:serve",
             url: "http://localhost:4200",
             cwd: workspaceRoot,
-            timeout: 30000,
+            timeout: 120000,
           },
           {
             command: "yarn nx run backend:serve",
             url: "http://localhost:3000/health",
             cwd: workspaceRoot,
-            timeout: 30000,
+            timeout: 120000,
           },
         ],
   projects: [

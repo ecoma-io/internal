@@ -24,7 +24,7 @@
         "inlineStyleLanguage": "scss",
         "allowedCommonJsDependencies": [
           "pino"
-        ]
+        ],
         "assets": [
           {
             "glob": "package.json",

@@ -1,5 +1,3 @@
-import { TestDataFactory } from "@ecoma/common-testing";
-
 import {
   deepClone,
   deepMerge,
@@ -24,10 +22,7 @@ describe("Object Utils", () => {
     });
 
     it("should clone Date objects", () => {
-      const date = TestDataFactory.createDate(
-        new Date(2020, 0, 1),
-        new Date(2023, 11, 31)
-      );
+      const date = new Date(2020, 0, 1);
       const cloned = deepClone(date);
       expect(cloned).toBeInstanceOf(Date);
       expect(cloned.getTime()).toBe(date.getTime());
@@ -85,14 +80,7 @@ describe("Object Utils", () => {
     it("should return true for objects", () => {
       expect(isObject({})).toBe(true);
       expect(isObject({ a: 1 })).toBe(true);
-      expect(
-        isObject(
-          TestDataFactory.createDate(
-            new Date(2020, 0, 1),
-            new Date(2023, 11, 31)
-          )
-        )
-      ).toBe(true);
+      expect(isObject(new Date(2020, 0, 1))).toBe(true);
     });
 
     it("should return false for non-objects", () => {

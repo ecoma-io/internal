@@ -2,9 +2,6 @@ import { DOCUMENT, isPlatformServer } from "@angular/common";
 import { PLATFORM_ID, Provider } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { Request } from "express";
-
-import { AssertionHelpers } from "@ecoma/common-testing";
-
 import { CookieService } from "./cookie.service";
 
 describe("Cookies Service", () => {
@@ -101,9 +98,12 @@ describe("Cookies Service", () => {
     it("should set cookie with expiration date as number", () => {
       service.set("test", "value", { expires: 1 });
 
-      AssertionHelpers.expectToContainAllProperties(service.getAll(), {
-        test: "value",
-      }); // Không kiểm tra expires vì nó không hiển thị
+      // Use expect.objectContaining to match the expected key-value pair and ignore other properties
+      expect(service.getAll()).toEqual(
+        expect.objectContaining({
+          test: "value",
+        })
+      );
     });
   });
 

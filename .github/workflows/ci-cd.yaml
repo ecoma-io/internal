@@ -77,7 +77,7 @@ jobs:
 
 
   e2e_check:
-    name: Intergration Check
+    name: E2E Check
     runs-on: ubuntu-latest
     steps:
       - name: Setup CI Environment Variable

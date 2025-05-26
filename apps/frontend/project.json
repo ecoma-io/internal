@@ -22,6 +22,9 @@
         ],
         "tsConfig": "apps/frontend/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
+        "allowedCommonJsDependencies": [
+          "pino"
+        ]
         "assets": [
           {
             "glob": "package.json",

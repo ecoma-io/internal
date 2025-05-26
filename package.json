@@ -18,7 +18,7 @@
     "@angular/platform-server": "~19.2.0",
     "@angular/router": "~19.2.0",
     "@angular/ssr": "~19.2.0",
-    "@golevelup/nestjs-rabbitmq": "^5.7.0",
+    "@golevelup/nestjs-rabbitmq": "^6.0.0",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.13",
     "@nestjs/config": "^4.0.2",

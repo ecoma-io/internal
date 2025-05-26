@@ -28,16 +28,15 @@ function validatedEnviroments(): EnvironmentVariables {
 }
 
 export class RabbitMQConfig {
-  
+  uri: string
 }
 
 export const rabbitMQConfig = registerAs(
   "rabbitmq",
-  () => {
+  (): RabbitMQConfig => {
     const env = validatedEnviroments();
     return {
       uri: env.RABBITMQ_URI,
-      queue: "default_queue",
     };
   }
 );

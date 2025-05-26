@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
-import { appConfig, MongoDBConfig, mongoDBConfig } from "./config";
+import { appConfig, MongoDBConfig, mongoDBConfig, rabbitMQConfig } from "./config";
 import { HealthyModule } from "./core/healthy/healthy.module";
 import { IamModule } from "./domains/iam/iam.module";
 import { LzmModule } from "./domains/lzm/lzm.module";
@@ -13,7 +13,7 @@ import { NdmModule } from "./domains/ndm/ndm.module";
     HealthyModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, mongoDBConfig],
+      load: [appConfig, mongoDBConfig, rabbitMQConfig],
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

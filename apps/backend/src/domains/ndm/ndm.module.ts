@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
-import { rabbitMQConfig } from '../../config/rabbitmq.config';
+import { RabbitMQConfig } from '../../config/rabbitmq.config';
 import { MongooseModule } from "@nestjs/mongoose";
 import {
   NotificationHistory,
@@ -28,12 +28,12 @@ import { LzmModule } from "../lzm/lzm.module";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const uri = configService.get<string>('rabbitmq.uri');
+        const rabbitMQConfig = configService.get<RabbitMQConfig>('rabbitmq');
         return {
           exchanges: [
             { name: 'notification.exchange', type: 'topic' },
           ],
-          uri,
+          uri: rabbitMQConfig.uri,
           connectionInitOptions: { wait: false },
         };
       },
@@ -56,4 +56,4 @@ import { LzmModule } from "../lzm/lzm.module";
   controllers: [],
   exports: [NotificationService],
 })
-export class NdmModule {}
+export class NdmModule { }

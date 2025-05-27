@@ -10,8 +10,8 @@ let baseURL: string;
 if (process.env["BASE_URL"]) {
   baseURL = process.env["BASE_URL"]
 } else {
-  execSync('nx build backend', { stdio: 'inherit' })
-  execSync('nx server frontend', { stdio: 'inherit' })
+  execSync('./node_modules/.bin/nx build backend', { stdio: 'inherit' })
+  execSync('./node_modules/.bin/nx server frontend', { stdio: 'inherit' })
   execSync('docker compose up -d --wait --build', { stdio: 'inherit' })
   baseURL = 'http://localhost:42000';
 }

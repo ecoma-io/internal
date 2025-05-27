@@ -98,22 +98,6 @@ async function globalSetup() {
     return; // Skip the rest of the setup
   }
 
-  console.log("Building and loading containers...");
-  try {
-    execSync("INPUT_TAGS=internal-backend nx containerize backend --load", {
-      stdio: "inherit",
-      cwd: workspaceRoot,
-    });
-    execSync("INPUT_TAGS=internal-frontend nx containerize frontend --load", {
-      stdio: "inherit",
-      cwd: workspaceRoot,
-    });
-    console.log("Containers built and loaded successfully");
-  } catch (error) {
-    console.error("Error building/loading containers:", error);
-    process.exit(1);
-  }
-
   const baseUrl = await deployLocalTestingEnviroment();
 
   // Set the base URL for playwright.config.ts to use

@@ -49,9 +49,7 @@
       "cache": true,
       "dependsOn": ["^build"]
     },
-    "automate-test": {
-      "cache": false
-    },
+
     "@nx/js:tsc": {
       "cache": true,
       "dependsOn": ["^build"],
@@ -60,8 +58,9 @@
     "server": {
       "cache": true
     },
-    "e2e-ci--**/*": {
-      "dependsOn": ["^build"]
+    "automate-test": {
+      "dependsOn": ["^containerize"],
+      "cache": false
     }
   },
   "plugins": [

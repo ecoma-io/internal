@@ -104,7 +104,19 @@
       "dependsOn": [
         "server"
       ],
-      "executor": "@nx-tools/nx-container:build"
+      "executor": "@nx-tools/nx-container:build",
+      "defaultConfiguration": "development",
+      "configurations": {
+        "development": {
+          "load": true,
+          "tags": [
+            "internal-frontend:latest"
+          ]
+        },
+        "production": {
+          "push": true
+        }
+      }
     }
   }
 }

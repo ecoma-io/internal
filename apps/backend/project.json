@@ -36,7 +36,19 @@
       "dependsOn": [
         "build"
       ],
-      "executor": "@nx-tools/nx-container:build"
+      "executor": "@nx-tools/nx-container:build",
+      "defaultConfiguration": "development",
+      "configurations": {
+        "development": {
+          "load": true,
+          "tags": [
+            "internal-backend:latest"
+          ]
+        },
+        "production": {
+          "push": true
+        }
+      }
     }
   }
 }

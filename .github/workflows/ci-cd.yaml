@@ -125,6 +125,8 @@ jobs:
 
       - name: E2E test
         run: ./node_modules/.bin/nx run-many --target=automate-test
+        timeout-minutes: 10
+
 
 
   release:

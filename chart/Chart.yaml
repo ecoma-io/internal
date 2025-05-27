@@ -2,7 +2,7 @@ apiVersion: v2
 name: Ecoma Internal
 description: A Helm chart for the Ecoma Internal Application
 icon: https://github.com/ecoma-io/internal/raw/refs/heads/main/chart/icon.png
-version: 0.0.1
+version: 0.0.2
 
 # dependencies:
 #   - name: mongodb

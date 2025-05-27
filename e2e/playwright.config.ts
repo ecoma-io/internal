@@ -1,11 +1,19 @@
 import { nxE2EPreset } from "@nx/playwright/preset";
 import { defineConfig, devices } from "@playwright/test";
+import { execSync } from "child_process";
 
 // For CI, you may want to set BASE_URL to the deployed application.
 
 // Use the base URL set in global.setup.ts
-const BASE_URL =
-  process.env["PLAYWRIGHT_TEST_BASE_URL"] || "http://localhost:4200";
+let baseURL: string;
+
+if (process.env["BASE_URL"]) {
+  baseURL = process.env["BASE_URL"]
+} else {
+  execSync('docker compose up -d --wait --build', { stdio: 'inherit' })
+  baseURL = 'http://localhost:42000';
+}
+
 
 /**
  * Read environment variables from file.
@@ -18,12 +26,10 @@ const BASE_URL =
  */
 export default defineConfig({
   // Reference the global setup file
-  globalSetup: require.resolve("./global.setup"),
-  timeout: 10 * 60 * 1000,
   ...nxE2EPreset(__filename, { testDir: "./src" }),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    baseURL: BASE_URL,
+    baseURL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
   },

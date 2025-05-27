@@ -79,6 +79,9 @@ jobs:
   e2e_check:
     name: E2E Check
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.52.0-noble
+      options: --user 1001
     steps:
       - name: Setup CI Environment Variable
         run: export CI=true
@@ -109,19 +112,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-
-
-      - uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: |
-            ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install playwright deps
-        run: ./node_modules/.bin/playwright install --with-deps
 
       - name: E2E test
         run: ./node_modules/.bin/nx run-many --target=automate-test
